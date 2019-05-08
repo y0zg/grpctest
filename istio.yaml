@@ -1,0 +1,70 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: grpctest-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - hosts:
+    - "*.zenoss.io"
+    port:
+      number: 443
+      name: gateway443
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      privateKey: /etc/istio/ingressgateway-certs/tls.key
+      serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
+  - hosts:
+    - "*"
+    port:
+      number: 80
+      name: gateway80
+      protocol: HTTP
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: test-vs
+spec:
+  gateways:
+  - grpctest-gateway
+  hosts:
+  - "*"
+  http:
+  - match:
+    - port: 80
+    route:
+    - destination:
+        host: grpctestsvc
+        port:
+          number: 8081
+  - match:
+    - port: 443
+    route:
+    - destination:
+        host: grpctestsvc
+        port:
+          number: 8080
+
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: test-transcoder
+spec:
+  workloadLabels:
+    #matches label on deployment
+    app: grpctest
+  filters:
+  - listenerMatch:
+      portNumber: 8080
+      listenerType: SIDECAR_INBOUND #
+      listenerProtocol: HTTP
+    filterName: envoy.grpc_json_transcoder
+    filterType: HTTP
+    filterConfig:
+      proto_descriptor: "/gce-disk2/grpc_test_1.pb"
+      services: ["IanTestService"]

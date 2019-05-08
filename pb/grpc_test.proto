@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+
+message Request {
+  int32 value = 1;
+}
+
+message Result {
+  int32 value = 1;
+}
+
+message Empty {}
+
+service MathService {
+  rpc Square(Request) returns (Result) {
+    option (google.api.http) = {
+            post: "/math/square"
+            body: "value"
+    };
+  }
+  rpc Random(Empty) returns (Result) {
+    option (google.api.http) = {get: "/math/random"};
+  }
+}
