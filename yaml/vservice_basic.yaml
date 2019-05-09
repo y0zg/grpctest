@@ -1,0 +1,28 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: grpctest
+spec:
+  gateways:
+  - bookinfo-gateway
+  hosts:
+  - '*'
+  http:
+  - match:
+    - port: 80
+    route:
+    - destination:
+        host: grpctest
+        port:
+          number: 8081
+  - match:
+    - port: 443
+    route:
+    - destination:
+        host: grpctest
+        port:
+          number: 8080
+#    corsPolicy:
+#      allowHeaders:
+#      - content-type
+#      - Authorization

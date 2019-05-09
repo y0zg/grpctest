@@ -1,0 +1,146 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: apikey-lua-filter
+  namespace: default
+spec:
+  workloadLabels:
+    # This EnvoyFilter will apply to any deployment with the "auth: apikey" label, ie:
+    # apiVersion: extensions/v1beta1
+    # kind: Deployment
+    # metadata:
+    #     name: grpctest
+    #     labels:
+    #         app: grpctest
+    #         auth: apikey
+    # spec: ..
+    auth: apikey
+  filters:
+  - listenerMatch: 
+      #portNumber: 8081 #-- all inbound http sidecar requests will go through this filter
+      listenerType: SIDECAR_INBOUND
+      listenerProtocol: HTTP
+    filterName: envoy.lua
+    filterType: HTTP
+    filterConfig:
+      inlineCode: |
+          function version()
+              return "v36"
+          end
+
+          function log(handle, value)
+              handle:logInfo("RONP: ".. version() .. ": " .. value)
+          end
+
+          -- unable to import the json module, so parsing out the string expected
+          -- from the api-key-server
+          -- note: would like to know how to use json = require "json"; json.decode(..)
+          -- so that this isn't necessary.
+          function manual_parse(input)
+              --local json = require "json"
+              --return json.decode(value)
+              local sub = string.sub(input, 2, -2) -- remove beginning/ending braces
+              -- this will either be {data=key} or {error=message}
+              local key = string.gsub(sub, '"([^"]+)":"[^"]+"', '%1')
+              local value = string.gsub(sub, '"[^"]+":"([^"]+)"', '%1')
+              return {[key]=value}
+          end
+
+          -- dump a lua object into a string for logging
+          function dump(o)
+             if type(o) == 'table' then
+                local s = '{ '
+                for k,v in pairs(o) do
+                   if type(k) ~= 'number' then k = '"'..k..'"' end
+                   s = s .. '['..k..'] = ' .. dump(v) .. ','
+                end
+                return s .. '} '
+             else
+                return tostring(o)
+             end
+          end
+
+          function is_empty(value)
+              return value == nil or value == ""
+          end
+
+          function get_header(handle, header)
+              return handle:headers():get(header)
+          end
+
+          function envoy_on_request(request_handle)
+
+            log(request_handle, "PROCESSING REQUEST LUA")
+
+            -- If there's no api key, skip this.
+            local key = get_header(request_handle, "z-api-key")
+            if is_empty(key) then
+                log(request_handle, "NO z-api-key HEADER FOUND")
+                do return end
+            end
+
+            -- If there's already an Authorization header, skip this.
+            local authHeader = get_header(request_handle, "authorization")
+            if not is_empty(authHeader) then
+                log(request_handle, "Request already contains an Authorization header")
+                do return end
+            end
+
+            log(request_handle, "z-api-key HEADER WAS FOUND")
+
+            -- Build a request for our authenticaiton service before passing request upstream
+            local auth_host = "api-key-server.default.svc.cluster.local"
+            local path = "/accessToken?key=" .. key .. "&request_uri=https://unused.zenoss.io"
+
+            local cluster = "outbound|8000||" .. auth_host
+            local request_headers = {
+                [":method"] = "GET",
+                [":path"] = path,
+                [":authority"] = auth_host
+            }
+
+            local request_body = ""
+            local timeout = 10000
+            
+            log(request_handle, "Querying for key (" .. key .. "): cluster: " .. cluster .. ", request_headers: " .. dump(request_headers) .. ", request_body: " .. request_body .. ", timeout: " .. timeout)
+            local response_headers, response_body = request_handle:httpCall(
+                cluster,
+                request_headers,
+                request_body,
+                timeout
+            )
+
+            log(request_handle, "response_headers: " .. dump(response_headers))
+            log(request_handle, "response_body: " .. dump(response_body))
+
+            -- If the response isn't 200, reject the request
+            if tonumber(response_headers[":status"]) ~= 200 then
+                log(request_handle, "Key Authentication Failed")
+                request_handle:respond(
+                                {[":status"] = 403},
+                                response_body
+                        )
+                do return end
+            end
+
+            -- The api-key-server responds with json
+            -- {"data":"<token>"} or {"error":"<error>"}
+            local response = manual_parse(response_body)
+            if false == is_empty(response["error"]) then
+                log(request_handle, "Key Exchange Failed")
+                request_handle:respond(
+                                {[":status"] = 403},
+                                response_body
+                        )
+                do return end
+            end
+
+            local value = response["data"]
+            log(request_handle, "GOT AN ACCESS TOKEN FROM THE KEY SERVER: " .. value)
+            request_handle:headers():replace("authorization", "Bearer " .. value)
+          end
+
+          function envoy_on_response(response_handle)
+            log(response_handle, "PROCESSING RESPONSE LUA")
+            response_handle:headers():add("version", version())
+          end
