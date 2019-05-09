@@ -21,6 +21,9 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: grpctest-md
+  labels:
+    app: grpctest
+    auth: apikey
 spec:
   replicas: 1
   revisionHistoryLimit: 1
@@ -28,6 +31,7 @@ spec:
     metadata:
       labels:
         app: grpctest
+        auth: apikey
     spec:
       containers:
       - name: grpctest
