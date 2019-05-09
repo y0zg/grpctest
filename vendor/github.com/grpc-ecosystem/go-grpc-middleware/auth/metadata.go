@@ -4,7 +4,6 @@
 package grpc_auth
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/util/metautils"
@@ -23,21 +22,17 @@ var (
 // case-insensitive format (see rfc2617, sec 1.2). If no such authorization is found, or the token
 // is of wrong scheme, an error with gRPC status `Unauthenticated` is returned.
 func AuthFromMD(ctx context.Context, expectedScheme string) (string, error) {
-	nicemd := metautils.ExtractIncoming(ctx)
-	keys := ""
-	for _, key := range nicemd {
-		keys += fmt.Sprintf(", %s", key)
-	}
-	val := nicemd.Get(headerAuthorize)
+	val := metautils.ExtractIncoming(ctx).Get(headerAuthorize)
 	if val == "" {
-		return "", grpc.Errorf(codes.Unauthenticated, "1. Request unauthenticated with "+expectedScheme + " (" + keys + ")")
+		return "", grpc.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
+
 	}
 	splits := strings.SplitN(val, " ", 2)
 	if len(splits) < 2 {
 		return "", grpc.Errorf(codes.Unauthenticated, "Bad authorization string")
 	}
 	if strings.ToLower(splits[0]) != strings.ToLower(expectedScheme) {
-		return "", grpc.Errorf(codes.Unauthenticated, "2. Request unauthenticated with "+expectedScheme)
+		return "", grpc.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
 	}
 	return splits[1], nil
 }

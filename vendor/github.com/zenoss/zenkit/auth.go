@@ -35,11 +35,11 @@ func UnverifiedIdentity(ctx context.Context) (context.Context, error) {
 	// Extract the identity from the metadata
 	raw, err := grpc_auth.AuthFromMD(ctx, AuthHeaderScheme)
 	if err != nil {
-		return nil, wrapUnauthenticated2(err, "here1")
+		return nil, wrapUnauthenticated(err)
 	}
 	ident, err := NewAuth0TenantIdentity(raw)
 	if err != nil {
-		return nil, wrapUnauthenticated2(err, "here2")
+		return nil, wrapUnauthenticated(err)
 	}
 
 	addIdentityFieldsToTags(ctx, ident)
@@ -54,9 +54,5 @@ func addIdentityFieldsToTags(ctx context.Context, ident TenantIdentity) {
 
 func wrapUnauthenticated(err error) error {
 	stat := status.New(codes.Unauthenticated, err.Error())
-	return stat.Err()
-}
-func wrapUnauthenticated2(err error, extra string) error {
-	stat := status.New(codes.Unauthenticated, err.Error() + ": " + extra)
 	return stat.Err()
 }
