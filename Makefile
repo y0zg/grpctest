@@ -24,7 +24,7 @@ protoc-image:
 
 protoc: protoc-image
 	@docker run -v $(CURDIR):${SRC_DIR} --rm protoc-image protoc --proto_path=${SRC_DIR}/googleapis -I=${SRC_DIR} ${SRC_DIR}/pb/grpc_test.proto --go_out=plugins=grpc:${SRC_DIR}
-#	@docker run --rm protoc-image protoc --include_imports --include_source_info --proto_path=${GOOGLEAPIS_DIR} --proto_path=$(pwd) --descriptor_set_out=pb/api_descriptor.pb pb/grpc_test.proto
+	@docker run -v $(CURDIR):${SRC_DIR} --rm protoc-image protoc --include_imports --include_source_info --proto_path=${SRC_DIR}/googleapis --proto_path=${SRC_DIR}  --descriptor_set_out=pb/grpctest_descriptor.pb pb/grpc_test.proto
 
 .PHONY: client
 
