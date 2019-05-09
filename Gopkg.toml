@@ -24,6 +24,9 @@
 #   go-tests = true
 #   unused-packages = true
 
+[[override]]
+  version = "=4.0.20"
+  name = "github.com/zenoss/zenkit"
 
 [[constraint]]
   name = "github.com/golang/protobuf"
