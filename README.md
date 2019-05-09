@@ -29,7 +29,12 @@ A gke persistent disk is needed for the grpc descriptor files used for transcodi
  ```
   gcloud compute scp pb/*.pb ${INSTANCE_NAME}:/proto_mount/.
  ```
- 
+ ## Delete compute instance
+ Need to delete so K8s can mount disk in read only mode
+ ```
+gcloud compute instances delete ${INSTANCE_NAME}
+
+```
 
 ## modify istio sidecar injector yaml to have persistent disks
 
