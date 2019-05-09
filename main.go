@@ -10,7 +10,9 @@ import (
 	// "crypto/rsa"
 	// "crypto/x509"
 	"crypto/tls"
+	"errors"
 	"fmt"
+	"github.com/zenoss/zenkit"
 	"log"
 	"math"
 	"net"
@@ -22,6 +24,12 @@ import (
 	//"golang.org/x/net/http2"
 	"math/rand"
 )
+
+var (
+	ErrIdentityMissing    = errors.New("no identity on context")
+)
+
+const authHeader = "authorization"
 
 type server struct{}
 
@@ -51,48 +59,44 @@ func main() {
 
 	//end cert code
 
-	//http2 healtcheck
-	go func() {
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	httpServer := http.NewServeMux()
+
+	httpServer.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "IMOK")
+	})
+
+	var dumpHeaders = func(w http.ResponseWriter, r *http.Request) {
+		i := 1
+		for key, value := range r.Header {
+			fmt.Fprintf(w, "  Header#%d: %s=%s\n", i, key, value)
+			i = i + 1
+		}
+	}
+
+	httpServer.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get(authHeader)
+		identity, err := zenkit.NewAuth0TenantIdentity(token)
+		//identity, err := identityFromRequest(r)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Error converting request to identity: %s", err.Error())
+			dumpHeaders(w, r)
+			return
+		}
+		if identity == nil {
 			w.WriteHeader(http.StatusOK)
-			fmt.Fprint(w, "imok")
-			fmt.Println("HEALTH CHECK: imok")
-		})
+			fmt.Fprintln(w, "No identity on the token")
+		} else {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "You are: %s\n", identity.Email())
+		}
+		dumpHeaders(w, r)
+	})
 
-		healthCheckPort := 8081
-
-
-		//plain http
-		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", healthCheckPort), nil))
-
-		//http2
-		//srv := &http.Server{
-		//	Addr: fmt.Sprintf(":%d", healthCheckPort),
-		//}
-		//
-		//
-		//http2.ConfigureServer(srv, &http2.Server{})
-		//
-		//lis, err := tls.Listen("tcp", fmt.Sprintf(":%d", healthCheckPort), tlsConfig)
-		//
-		//if err != nil {
-		//	log.Fatalf("failed to listen: %v", err)
-		//	return
-		//}
-		//
-		//log.Fatal(srv.Serve(lis))
+	go func() {
+		http.ListenAndServe(":8081", httpServer)
 	}()
-	//end http2 healthcheck
-
-
-	// http.HandleFunc("/ruok", func(w http.ResponseWriter, r *http.Request) {
-	// 	fmt.Println("HEALTH CHECK")
-	// 	w.WriteHeader(http.StatusOK)
-	// })
-
-	// go func() {
-	// 	http.ListenAndServe(":8081", nil)
-	// }()
 
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
