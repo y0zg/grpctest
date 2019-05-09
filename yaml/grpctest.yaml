@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpctest
+  labels:
+    app: grpctest
+    service: grpctest
+spec:
+  ports:
+  - port: 8080
+    name: tcp
+  - port: 8081
+    name: http
+  selector:
+    app: grpctest
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: grpctest
+  labels:
+    app: grpctest
+    auth: apikey
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  template:
+    metadata:
+      labels:
+        app: grpctest
+        auth: apikey
+    spec:
+      containers:
+      - name: grpctest
+        image: gcr.io/zing-registry-188222/grpctestrp:latest
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 8081
+#            protocol: TCP
+          - containerPort: 8080
+#            protocol: TCP
+

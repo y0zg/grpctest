@@ -1,0 +1,30 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: ext-authz
+spec:
+  workloadLabels:
+    auth: apikey
+  filters:
+  - insertPosition:
+      index: FIRST
+    listenerMatch:
+      listenerType: SIDECAR_INBOUND
+      listenerProtocol: HTTP
+    filterType: HTTP
+    filterName: "envoy.ext_authz"
+    filterConfig:
+      http_service:
+        server_uri:
+          uri: http://api-key-server.default.svc.cluster.local
+          cluster: outbound|8000||api-key-server.default.svc.cluster.local
+          timeout: 10s
+          failure_mode_allow: false
+        authorization_request:
+          authorization_request:
+            allowed_headers:
+              patterns:
+                exact: "z-api-key"
+          allowed_upstream_headers:
+          - patterns:
+            - exact: authorization
