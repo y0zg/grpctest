@@ -37,14 +37,14 @@ spec:
     - port: 80
     route:
     - destination:
-        host: grpctestsvc
+        host: grpctest
         port:
           number: 8081
   - match:
     - port: 443
     route:
     - destination:
-        host: grpctestsvc
+        host: grpctest
         port:
           number: 8080
 
