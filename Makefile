@@ -1,7 +1,7 @@
 PROJECT_ID = zing-dev-197522
 CLUSTER_ID = jpl-gke
 ZONE = us-central1-f
-TAG = build-test
+TAG = poc-test
 FULL_CLUSTER = gke_$(PROJECT_ID)_$(ZONE)_$(CLUSTER_ID)
 IMAGE_NAME = gcr.io/zing-registry-188222/grpctest:$(TAG)
 

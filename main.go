@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc"
 	//"golang.org/x/net/http2"
 	"math/rand"
+	"os"
 )
 
 type server struct{}
@@ -32,22 +33,24 @@ func (s *server) Square(ctx context.Context, in *pb.Request) (*pb.Result, error)
 }
 
 func (s *server) Random(ctx context.Context, in *pb.Empty) (*pb.Result, error) {
+	_, onlyEven := os.LookupEnv("ONLY_EVEN")
+
+	r := int32(rand.Int31())
+
+	if onlyEven && r%2 != 0 {
+		r = r + 1
+	}
 	return &pb.Result{
-		Value: int32(rand.Int31()),
+		Value: r,
 	}, nil
 }
 
 func main() {
 
-
 	//tlsConfig, tlsErr := getTLSConfig()
 	//if tlsErr != nil {
 	//	log.Fatal("blam0")
 	//}
-
-
-
-
 
 	//end cert code
 
@@ -60,7 +63,6 @@ func main() {
 		})
 
 		healthCheckPort := 8081
-
 
 		//plain http
 		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", healthCheckPort), nil))
@@ -84,7 +86,6 @@ func main() {
 	}()
 	//end http2 healthcheck
 
-
 	// http.HandleFunc("/ruok", func(w http.ResponseWriter, r *http.Request) {
 	// 	fmt.Println("HEALTH CHECK")
 	// 	w.WriteHeader(http.StatusOK)
@@ -101,7 +102,7 @@ func main() {
 
 	//tls listen grpc
 	//grpcServer := grpc.NewServer([]grpc.ServerOption{grpc.Creds(credentials.NewTLS(tlsConfig))}...)
-	 grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer()
 	//pb.RegisterIanTestServiceServer(grpcServer, &server{})
 	pb.RegisterMathServiceServer(grpcServer, &server{})
 	log.Printf("Such listen: %s", listener.Addr())
@@ -109,7 +110,6 @@ func main() {
 		log.Fatalf("Serving is for chumps: %v", err)
 	}
 }
-
 
 func getTLSConfig() (*tls.Config, error) {
 
@@ -119,7 +119,7 @@ func getTLSConfig() (*tls.Config, error) {
 	}
 
 	tlsConfig := tls.Config{
-		Certificates:             []tls.Certificate{cert},
+		Certificates: []tls.Certificate{cert},
 		// MinVersion:               utils.MinTLS(connectionType),
 		// PreferServerCipherSuites: true,
 		// CipherSuites:             utils.CipherSuites(connectionType),
@@ -179,5 +179,4 @@ JJ29G7Sn6c6UWqLsqUGIpt5n0G7PuM4twPOq/FIegKFnqDlTMdfGpRnoC76hgZ7e
 nVl0vd8GzCtTE75E56YGUaAZtTFC8lF7i0FiCrXauwosknB38qFzONAbTx4JcMEP
 Fl7qybzjFllYvka3aP4ae/M=
 -----END PRIVATE KEY-----`
-
 )
