@@ -28,9 +28,9 @@
   version = "=4.0.20"
   name = "github.com/zenoss/zenkit"
 
-[[constraint]]
-  name = "github.com/golang/protobuf"
+[[override]]
   branch = "master"
+  name = "github.com/golang/protobuf"
 
 [[constraint]]
   branch = "master"
