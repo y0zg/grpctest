@@ -76,6 +76,10 @@ spec:
             local key = get_header(request_handle, "z-api-key")
             if is_empty(key) then
                 log(request_handle, "NO z-api-key HEADER FOUND")
+                request_handle:respond(
+                                {[":status"] = 403},
+                                "no api key"
+                        )
                 do return end
             end
 
@@ -130,7 +134,7 @@ spec:
                 log(request_handle, "Key Exchange Failed")
                 request_handle:respond(
                                 {[":status"] = 403},
-                                response_body
+                                  response_body
                         )
                 do return end
             end

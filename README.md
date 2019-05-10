@@ -41,7 +41,7 @@ gcloud compute instances delete ${INSTANCE_NAME}
 Download the current istio-sidecar-injector configmap
  
 ```
-kubectl -n istio-system get configmap istio-sidecar-injector -o yaml>istio-sidecar-injector-mod.yaml
+kubectl -n istio-system get configmap istio-sidecar-injector -o=jsonpath='{.data.config}' > inject-config.yaml
 ```
 modify with gce volumes, find the correct places to add:
  ```
@@ -56,10 +56,14 @@ modify with gce volumes, find the correct places to add:
                  fsType: ext4
 ``` 
    
+create modified conffig map
+
+```kubectl -n istio-system create configmap istio-jpl --from-file=config=inject-config.yaml```
+
    
 Inject containers with modified sidecar yaml
 
-```kubectl apply -f >(istioctl kube-inject --injectConfigFile istio-sidecar-injector-2.yaml  -f grpctest.yaml)```
+```kubectl apply -f <(istioctl kube-inject --injectConfigMapName istio-jpl -f grpctest.yaml)```
  
  
 #Build proto descriptorss ch 

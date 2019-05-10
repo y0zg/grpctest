@@ -1,0 +1,18 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: test-transcoder
+spec:
+  workloadLabels:
+    #matches label on deployment
+    app: grpctest
+  filters:
+  - listenerMatch:
+      portNumber: 8080
+      listenerType: SIDECAR_INBOUND #
+      listenerProtocol: HTTP
+    filterName: envoy.grpc_json_transcoder
+    filterType: HTTP
+    filterConfig:
+      proto_descriptor: "/gce-disk2/api_descriptor.pb"
+      services: ["MathService"]

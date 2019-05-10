@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: grpctest
+  name: grpctest-even
   annotations:
 spec:
   ports:
@@ -16,25 +16,25 @@ spec:
     name: http-health
   selector:
     app: grpctest
-    version: v1
+    version: v2
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: grpctest-v1
+  name: grpctest-even
 spec:
   replicas: 1
   revisionHistoryLimit: 1
   selector:
     matchLabels:
       app: grpctest
-      version: v1
+      version: v2
   template:
     metadata:
       labels:
         app: grpctest
+        version: v2
         auth: apikey
-        version: v1
     spec:
       containers:
       - name: grpctest
@@ -44,4 +44,7 @@ spec:
             protocol: TCP
           - containerPort: 8081
             protocol: TCP
+        env:
+            - name: ONLY_EVEN
+              value: "1"
 

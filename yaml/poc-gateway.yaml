@@ -1,25 +1,27 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
-  name: bookinfo-gateway
+  name: grpctest-gateway
 spec:
   selector:
-    istio: ingressgateway
+    istio: ingressgateway # use istio default controller
   servers:
   - hosts:
-    - '*'
+    - "*.zenoss.io"
     port:
-      name: http
-      number: 80
-      protocol: HTTP
-  - hosts:
-    - '*'
-    port:
-      name: https
       number: 443
+      name: gateway443
       protocol: HTTPS
     tls:
       mode: SIMPLE
       privateKey: /etc/istio/ingressgateway-certs/tls.key
       serverCertificate: /etc/istio/ingressgateway-certs/tls.crt
+  - hosts:
+    - "*"
+    port:
+      number: 80
+      name: gateway80
+      protocol: HTTP
+
+
 
